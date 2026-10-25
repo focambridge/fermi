@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Who has passed through? A probe-coverage model for Fermi’s paradox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --ink:#18213a; --muted:#566079; --line:#cfd5e2;
+  --accent:#c2304a; --accent-ink:#ffffff; --oiii:#1c8a80; --plate:#0d1630;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10182b; --surface:#172139; --ink:#e4e8f1; --muted:#98a2bb; --line:#2b3753;
+    --accent:#f06b80; --accent-ink:#1a0d12; --oiii:#4fc3b5;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10182b; --surface:#172139; --ink:#e4e8f1; --muted:#98a2bb; --line:#2b3753;
+  --accent:#f06b80; --accent-ink:#1a0d12; --oiii:#4fc3b5;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:16px; line-height:1.5; font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding:clamp(18px,3.2vw,40px) clamp(16px,3.2vw,40px) 56px}
+.top{max-width:64ch;margin-bottom:clamp(18px,2.6vw,30px)}
+h1{font-stretch:68%;font-weight:800;font-size:clamp(2.2rem,5.2vw,3.8rem);line-height:.96;letter-spacing:-.005em;margin:0 0 .3em}
+.lede{margin:0;color:var(--muted);font-size:1.06rem;max-width:60ch}
+.main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr);gap:clamp(22px,3.2vw,44px);align-items:start}
+.stage{position:sticky;top:16px}
+.plate{position:relative;width:min(100%,calc(100vh - 150px));min-width:min(100%,420px);aspect-ratio:1/1;background:var(--plate);border-radius:10px;overflow:hidden}
+.plate canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.transport{display:flex;align-items:center;gap:12px;margin-top:12px;max-width:min(100%,calc(100vh - 150px));min-width:min(100%,420px)}
+.play{flex:none;width:42px;height:42px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.play svg{width:16px;height:16px;fill:currentColor}
+.scrub{flex:1;min-width:0}
+.tlabel{margin:6px 0 0;color:var(--muted);font-size:.92rem}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;font-size:.86rem;color:var(--muted);max-width:min(100%,calc(100vh - 150px));min-width:min(100%,420px)}
+.key{display:inline-flex;align-items:center;gap:7px}
+.ramp{width:64px;height:12px;border-radius:3px;background:linear-gradient(90deg,#0d1630 0%,#5c1c48 18%,#d03a60 55%,#f47676 78%,#ffe4d4 100%)}
+.sw{width:14px;height:14px;border-radius:3px;background:var(--plate);position:relative;flex:none}
+.sw::after{content:"";position:absolute;inset:0;margin:auto;border-radius:50%}
+.sw-rep::after{width:10px;height:10px;border-radius:2px;background:#4fc3b5}
+.sw-active::after{width:6px;height:6px;background:#ffd27a;box-shadow:0 0 0 2px rgba(255,210,122,.3)}
+.sw-quiet::after{width:6px;height:6px;border:1px solid rgba(200,210,235,.7)}
+.sw-ring::after{width:11px;height:11px;border:1px solid rgba(255,170,150,.8)}
+.sw-sun::after{width:9px;height:9px;border:1.5px solid #f0c050}
+
+.panel{min-width:0}
+.readout{padding-bottom:18px}
+.readout .label{font-size:.98rem;color:var(--muted);margin:0;max-width:40ch}
+.big{font-stretch:72%;font-weight:800;font-size:clamp(2.5rem,4.6vw,3.5rem);line-height:1.02;margin:.08em 0 .06em;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:.92rem;margin:0}
+.verdict{margin:14px 0 0;font-size:1.03rem;max-width:48ch}
+.mc{margin:10px 0 0;font-size:.93rem;color:var(--muted);max-width:52ch}
+.mc strong{color:var(--ink);font-weight:650}
+dl.stats{display:grid;grid-template-columns:1fr auto;gap:9px 18px;margin:0;padding:16px 0;border-top:1px solid var(--line)}
+dl.stats dt{color:var(--muted);font-size:.93rem}
+dl.stats dd{margin:0;text-align:right;font-weight:620;font-size:.95rem}
+.spark{margin:0 0 6px;padding-top:4px}
+.spark canvas{width:100%;height:88px;display:block}
+.spark figcaption{font-size:.85rem;color:var(--muted);margin-top:4px}
+.group{padding:18px 0;border-top:1px solid var(--line)}
+h2{font-stretch:78%;font-weight:720;font-size:1.2rem;line-height:1.2;margin:0 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 13px;font:inherit;font-size:.92rem;cursor:pointer}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.preset-note{margin:10px 0 0;color:var(--muted);font-size:.9rem;min-height:1.4em;max-width:52ch}
+.ctl{margin:14px 0 0}
+.ctl[hidden]{display:none}
+.ctl-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.ctl-head label{font-size:.95rem}
+.ctl-head output{font-weight:620;font-size:.93rem;text-align:right;white-space:nowrap}
+input[type="range"]{width:100%;accent-color:var(--accent);margin:6px 0 0}
+.hint{color:var(--muted);font-size:.85rem;margin:3px 0 0;max-width:52ch}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:.93rem;padding:8px 13px;border:none;background:transparent;color:var(--ink);cursor:pointer}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.check{display:flex;gap:9px;align-items:center;font-size:.95rem;cursor:pointer}
+.check input{accent-color:var(--accent);width:17px;height:17px;margin:0}
+.ghost{font:inherit;font-size:.93rem;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);cursor:pointer}
+.ghost:hover{border-color:var(--muted)}
+details.notes{margin-top:34px;max-width:72ch;border-top:1px solid var(--line);padding-top:16px}
+details.notes summary{cursor:pointer;font-stretch:78%;font-weight:720;font-size:1.15rem}
+details.notes li{margin:8px 0;color:var(--ink)}
+details.notes p{color:var(--muted)}
+@media (max-width:900px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .stage{position:static}
+  .plate,.transport,.legend{width:100%;max-width:100%;min-width:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Who has passed through?</h1>
+    <p class="lede">A toy galaxy for testing Fermi’s paradox. Decide how civilisations send out probes, and see how likely it is that anything ever came past the Sun.</p>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="Galaxy map">
+      <div class="plate" id="plate">
+        <canvas id="map" role="img" aria-label="Map of the galaxy seen from above, showing where probes have visited"></canvas>
+      </div>
+      <div class="transport">
+        <button class="play" id="play" aria-label="Play">
+          <svg viewBox="0 0 16 16" id="playIcon" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg>
+        </button>
+        <input class="scrub" id="scrub" type="range" min="0" max="1000" step="1" value="1000" aria-label="Time through the period">
+      </div>
+      <p class="tlabel" id="tlabel">Present day</p>
+      <div class="legend">
+        <span class="key"><span class="ramp" aria-hidden="true"></span>Share of stars visited, from 1 in 10¹⁴ up to all</span>
+        <span class="key"><span class="sw sw-rep" aria-hidden="true"></span>Swept by self-replicators</span>
+        <span class="key"><span class="sw sw-active" aria-hidden="true"></span>Active civilisation</span>
+        <span class="key"><span class="sw sw-quiet" aria-hidden="true"></span>Gone quiet</span>
+        <span class="key"><span class="sw sw-ring" aria-hidden="true"></span>Leading edge of its probes</span>
+        <span class="key"><span class="sw sw-sun" aria-hidden="true"></span>The Sun</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Results and settings">
+      <div class="readout">
+        <p class="label" id="r-label">Chance a probe has reached the Sun</p>
+        <p class="big" id="r-big">…</p>
+        <p class="sub" id="r-sub">by the present day, in this galaxy</p>
+        <p class="verdict" id="r-verdict"></p>
+        <p class="mc" id="r-mc"></p>
+      </div>
+      <dl class="stats" id="stats"></dl>
+      <figure class="spark">
+        <canvas id="spark"></canvas>
+        <figcaption>Chance the Sun has been visited, across the period (log scale)</figcaption>
+      </figure>
+
+      <div class="group">
+        <h2>Scenarios</h2>
+        <div class="chips" id="chips">
+          <button class="chip" data-preset="scatter" aria-pressed="false">Scattershot probes</button>
+          <button class="chip" data-preset="survey" aria-pressed="false">Targeted survey</button>
+          <button class="chip" data-preset="one" aria-pressed="false">One replicator</button>
+          <button class="chip" data-preset="edge" aria-pressed="false">Near the threshold</button>
+          <button class="chip" data-preset="fireflies" aria-pressed="false">Fireflies</button>
+        </div>
+        <p class="preset-note" id="preset-note"></p>
+      </div>
+
+      <div class="group">
+        <h2>Civilisations</h2>
+        <div class="ctl"><div class="ctl-head"><label for="c-civs">How many arise over the period</label><output id="o-civs" for="c-civs"></output></div><input type="range" id="c-civs" data-key="civs" min="0" max="1000" step="1"></div>
+        <div class="ctl"><div class="ctl-head"><label for="c-period">Length of the period</label><output id="o-period" for="c-period"></output></div><input type="range" id="c-period" data-key="period" min="0" max="1000" step="1"><p class="hint">The end of the period is the present day. Each civilisation appears at a random time within it.</p></div>
+        <div class="ctl"><div class="ctl-head"><label for="c-life">How long each stays active</label><output id="o-life" for="c-life"></output></div><input type="range" id="c-life" data-key="life" min="0" max="1000" step="1"><p class="hint">Probes go out steadily through this time, and its light reaches others for this long.</p></div>
+      </div>
+
+      <div class="group">
+        <h2>Ordinary probes</h2>
+        <div class="seg" role="group" aria-label="How probes are sent">
+          <button data-strategy="random" aria-pressed="true">Random directions</button>
+          <button data-strategy="aimed" aria-pressed="false">Aimed at stars</button>
+        </div>
+        <div class="ctl"><div class="ctl-head"><label for="c-probes">Probes per civilisation</label><output id="o-probes" for="c-probes"></output></div><input type="range" id="c-probes" data-key="probes" min="0" max="1000" step="1"></div>
+        <div class="ctl"><div class="ctl-head"><label for="c-speed">Probe speed</label><output id="o-speed" for="c-speed"></output></div><input type="range" id="c-speed" data-key="speed" min="0" max="1000" step="1"><p class="hint">Also sets how fast self-replicators can spread.</p></div>
+        <div class="ctl" data-show="random"><div class="ctl-head"><label for="c-near">Counts as a visit if it passes within</label><output id="o-near" for="c-near"></output></div><input type="range" id="c-near" data-key="near" min="0" max="1000" step="1"><p class="hint">Neptune orbits at about 30 AU. One light-year is about 63,000 AU.</p></div>
+        <div class="ctl" data-show="aimed"><div class="ctl-head"><label for="c-range">Range of the survey</label><output id="o-range" for="c-range"></output></div><input type="range" id="c-range" data-key="range" min="0" max="1000" step="1"></div>
+        <div class="ctl" data-show="aimed"><label class="check"><input type="checkbox" id="c-prefer"> Visit worlds with signs of life first</label></div>
+        <div class="ctl" data-show="prefer"><div class="ctl-head"><label for="c-lifeShare">Stars with detectable life</label><output id="o-lifeShare" for="c-lifeShare"></output></div><input type="range" id="c-lifeShare" data-key="lifeShare" min="0" max="1000" step="1"><p class="hint">Earth counts as one of them: its oxygen has been visible from afar for over two billion years.</p></div>
+      </div>
+
+      <div class="group">
+        <h2>Self-replicating probes</h2>
+        <div class="ctl"><div class="ctl-head"><label for="c-repShare">Civilisations that release them</label><output id="o-repShare" for="c-repShare"></output></div><input type="range" id="c-repShare" data-key="repShare" min="0" max="1000" step="1"><p class="hint">The rest send ordinary probes.</p></div>
+        <div class="ctl"><div class="ctl-head"><label for="c-reliab">Replication reliability</label><output id="o-reliab" for="c-reliab"></output></div><input type="range" id="c-reliab" data-key="reliab" min="0" max="1000" step="1"><p class="hint">Chance that each settled patch seeds each of its neighbours. Below about 0.25 the spread fizzles out; just above it, the spread leaves large voids.</p></div>
+        <div class="ctl"><div class="ctl-head"><label for="c-pause">Pause to build each generation</label><output id="o-pause" for="c-pause"></output></div><input type="range" id="c-pause" data-key="pause" min="0" max="1000" step="1"></div>
+      </div>
+
+      <div class="group">
+        <button class="ghost" id="reroll">New random galaxy</button>
+        <p class="hint">Same settings, different places and times for each civilisation.</p>
+      </div>
+    </section>
+  </div>
+
+  <details class="notes">
+    <summary>How the model works, and what it leaves out</summary>
+    <ul>
+      <li>The galaxy is a flat disk of about 120 billion stars, divided into squares 1,000 light-years across. Odds are worked out for the real number of stars in each square; the dots on the map are only scenery.</li>
+      <li>Probes fired in random directions use full three-dimensional geometry. A probe launched from <i>r</i> light-years away passes within <i>d</i> of a particular star with probability <i>d</i>²&#8202;/&#8202;4<i>r</i>², which is why sheer numbers of probes achieve so little.</li>
+      <li>Aimed probes are shared evenly among the stars within range, or among life-bearing stars first if you choose that.</li>
+      <li>Self-replicators spread from square to square. Their speed comes from the probe speed, a 7-light-year hop between neighbouring stars and the pause to build copies. Each link between squares succeeds with the reliability you set, which makes the spread a percolation process.</li>
+      <li>Light travels at its own speed, so a civilisation is in our sky only while the light from its active years is arriving here.</li>
+      <li>Stars don’t move in this model. In reality the Sun circles the galaxy roughly every 230 million years, which shuffles neighbourhoods and generally helps probes reach more systems.</li>
+      <li>A visit means a probe passed by or arrived. Whether it stayed, left anything behind, or could be spotted today is a separate question.</li>
+    </ul>
+  </details>
+</div>
+
+<script id="core">
+'use strict';
+const GRID=100, CELL=1000, RG=50000, HOP=7, AU_LY=63241, WINDOW=1e8;
+const DISK_STARS=1e11, BULGE_STARS=2e10, RD=8500, SB=3000;
+const SUN={x:-21000,y:15300};
+
+function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+
+const cellAt=new Int32Array(GRID*GRID).fill(-1);
+const _cx=[],_cy=[],_gi=[],_gj=[];
+for(let j=0;j<GRID;j++)for(let i=0;i<GRID;i++){
+  const x=(i+0.5)*CELL-RG,y=(j+0.5)*CELL-RG;
+  if(Math.hypot(x,y)<=RG){cellAt[j*GRID+i]=_cx.length;_cx.push(x);_cy.push(y);_gi.push(i);_gj.push(j);}
+}
+const NC=_cx.length;
+const cx=Float64Array.from(_cx), cy=Float64Array.from(_cy), gi=Int32Array.from(_gi), gj=Int32Array.from(_gj);
+const stars=new Float64Array(NC);
+(function(){
+  let sd=0,sb=0;const d=new Float64Array(NC),b=new Float64Array(NC);
+  for(let k=0;k<NC;k++){const r=Math.hypot(cx[k],cy[k]);d[k]=Math.exp(-r/RD);b[k]=Math.exp(-r*r/(2*SB*SB));sd+=d[k];sb+=b[k];}
+  for(let k=0;k<NC;k++)stars[k]=DISK_STARS*d[k]/sd+BULGE_STARS*b[k]/sb;
+})();
+let TOTAL=0;const cumStars=new Float64Array(NC);
+for(let k=0;k<NC;k++){TOTAL+=stars[k];cumStars[k]=TOTAL;}
+const sunCell=cellAt[Math.floor((SUN.y+RG)/CELL)*GRID+Math.floor((SUN.x+RG)/CELL)];
+
+const nbStart=new Int32Array(NC+1);const _nl=[],_nd=[];
+for(let k=0;k<NC;k++){
+  nbStart[k]=_nl.length;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    if(!dx&&!dy)continue;const ii=gi[k]+dx,jj=gj[k]+dy;
+    if(ii<0||jj<0||ii>=GRID||jj>=GRID)continue;const n=cellAt[jj*GRID+ii];if(n<0)continue;
+    _nl.push(n);_nd.push(dx&&dy?CELL*Math.SQRT2:CELL);
+  }
+}
+nbStart[NC]=_nl.length;
+const nbList=Int32Array.from(_nl), nbDist=Float64Array.from(_nd);
+
+class Heap{
+  constructor(){this.k=[];this.v=[];this.lastKey=0;}
+  get size(){return this.k.length;}
+  push(key,val){const k=this.k,v=this.v;let i=k.length;k.push(key);v.push(val);
+    while(i>0){const p=(i-1)>>1;if(k[p]<=key)break;k[i]=k[p];v[i]=v[p];i=p;}k[i]=key;v[i]=val;}
+  pop(){const k=this.k,v=this.v;const topK=k[0],topV=v[0];const lk=k.pop(),lv=v.pop();const n=k.length;
+    if(n>0){let i=0;for(;;){const l=2*i+1;if(l>=n)break;const r=l+1;const m=(r<n&&k[r]<k[l])?r:l;if(k[m]>=lk)break;k[i]=k[m];v[i]=v[m];i=m;}k[i]=lk;v[i]=lv;}
+    this.lastKey=topK;return topV;}
+}
+
+function makeCfg(p){
+  const v=p.speed/100, d=p.near/AU_LY;
+  return {strategy:p.strategy,K:p.probes*d*d/4,v,range:p.range,prefer:p.prefer,lifeShare:p.lifeShare,
+    probes:p.probes,reliab:p.reliab,vEff:HOP/(HOP/v+p.pause),T:p.period*1e6};
+}
+
+function genCivs(rng,p,cfg){
+  const civs=[];
+  for(let n=0;n<p.civs;n++){
+    const u=rng()*TOTAL;let lo=0,hi=NC-1;
+    while(lo<hi){const mid=(lo+hi)>>1;if(cumStars[mid]<u)lo=mid+1;else hi=mid;}
+    const k=lo,x=cx[k]+(rng()-0.5)*CELL,y=cy[k]+(rng()-0.5)*CELL,t0=rng()*cfg.T;
+    civs.push({x,y,k,t0,L:p.life,rSun:Math.hypot(x-SUN.x,y-SUN.y),rep:false,launch:Infinity,cL:0,cO:0,ownW:0,sunTime:Infinity});
+  }
+  const nRep=Math.round(p.repShare/100*p.civs);
+  if(nRep>0){
+    const idx=Array.from({length:civs.length},(_,i)=>i);
+    for(let i=0;i<nRep;i++){
+      const j=i+Math.floor(rng()*(idx.length-i));const tmp=idx[i];idx[i]=idx[j];idx[j]=tmp;
+      const c=civs[idx[i]];c.rep=true;c.launch=c.t0+rng()*c.L;
+    }
+  }
+  return civs;
+}
+
+function prepAimed(c,cfg){
+  const R=cfg.range;let S_=0;
+  if(R<CELL*0.75){c.ownW=Math.min(1,Math.PI*R*R/(CELL*CELL));S_=stars[c.k]*c.ownW;}
+  else{
+    for(let i=0;i<NC;i++){
+      const dx=cx[i]-c.x,dy=cy[i]-c.y,r=Math.sqrt(dx*dx+dy*dy);
+      if(r>R+CELL*0.5)continue;const ww=Math.min(1,(R-r)/CELL+0.5);if(ww>0)S_+=stars[i]*ww;
+    }
+  }
+  if(S_<=0){c.cL=c.cO=0;return;}
+  const N=cfg.probes;
+  if(cfg.prefer){
+    const Sl=cfg.lifeShare*S_;
+    if(N<=Sl){c.cL=N/Sl;c.cO=0;}else{c.cL=1;c.cO=Math.min(1,(N-Sl)/Math.max(1,S_-Sl));}
+  }else{c.cL=c.cO=Math.min(1,N/S_);}
+}
+
+function fracAt(c,t,v){const tau=t-c.t0-c.rSun/v;if(tau<=0)return 0;return c.L>0?Math.min(1,tau/c.L):1;}
+
+function sunWin(civs,ta,tb,cfg){
+  let lg=0,ex=0;
+  for(const c of civs){
+    if(c.rep)continue;
+    const d=fracAt(c,tb,cfg.v)-fracAt(c,ta,cfg.v);if(d<=0)continue;
+    if(cfg.strategy==='random'){const r=Math.max(c.rSun,50);const E=cfg.K/(r*r)*d;lg-=E;ex+=E;}
+    else{if(c.rSun>cfg.range)continue;const a=c.cL*d;ex+=a;lg+=a>=1?-Infinity:Math.log1p(-a);}
+  }
+  return {lg,ex};
+}
+
+const distBuf=new Float64Array(NC);
+function wave(c,cfg,rng,settle,stopAtSun){
+  distBuf.fill(Infinity);const h=new Heap();distBuf[c.k]=c.launch;h.push(c.launch,c.k);
+  let size=0,pruned=false,dominated=false,sunTime=Infinity;
+  const prune=settle&&cfg.reliab>=0.4;
+  while(h.size){
+    const u=h.pop(),tu=h.lastKey;if(tu>distBuf[u])continue;size++;
+    if(settle){if(tu<settle[u])settle[u]=tu;else if(prune){dominated=true;continue;}}
+    if(u===sunCell){sunTime=tu;if(stopAtSun)break;}
+    for(let e=nbStart[u];e<nbStart[u+1];e++){
+      const nb=nbList[e];if(distBuf[nb]<=tu)continue;
+      if(rng()>=cfg.reliab)continue;
+      const tn=tu+nbDist[e]/cfg.vEff*(0.85+0.3*rng());
+      if(tn>cfg.T){pruned=true;continue;}
+      if(tn<distBuf[nb]){distBuf[nb]=tn;h.push(tn,nb);}
+    }
+  }
+  return {size,pruned,dominated,sunTime};
+}
+
+function pSunAt(st,t){if(st.settle[sunCell]<=t)return 1;return -Math.expm1(sunWin(st.civs,0,t,st.cfg).lg);}
+
+function simulate(p,seed){
+  const cfg=makeCfg(p),rng=mulberry32(seed),civs=genCivs(rng,p,cfg);
+  if(cfg.strategy==='aimed')for(const c of civs)if(!c.rep)prepAimed(c,cfg);
+  const settle=new Float64Array(NC).fill(Infinity);let released=0,fizzled=0;
+  const reps=civs.filter(c=>c.rep&&c.launch<=cfg.T).sort((a,b)=>a.launch-b.launch);
+  for(const c of reps){
+    released++;
+    const r=wave(c,cfg,rng,settle,false);c.sunTime=r.sunTime;
+    if(!r.pruned&&!r.dominated&&r.size<NC*0.5)fizzled++;
+  }
+  const st={p,cfg,civs,settle,released,fizzled,T:cfg.T};
+  const M=200;st.spark=new Float64Array(M+1);
+  for(let m=0;m<=M;m++)st.spark[m]=pSunAt(st,m/M*cfg.T);
+  return st;
+}
+
+function addA(logL,logO,i,c,m,two){
+  const a=c.cL*m;logL[i]+=a>=1?-Infinity:Math.log1p(-a);
+  if(two){const b=c.cO*m;logO[i]+=b>=1?-Infinity:Math.log1p(-b);}
+}
+
+function makeField(){return {logL:new Float64Array(NC),logO:new Float64Array(NC),cov:new Float32Array(NC),rep:new Uint8Array(NC),gal:0,life:0};}
+
+function field(st,t,out){
+  const cfg=st.cfg,v=cfg.v,random=cfg.strategy==='random',two=!random&&cfg.prefer;
+  const logL=out.logL,logO=out.logO;logL.fill(0);if(two)logO.fill(0);
+  for(const c of st.civs){
+    if(c.rep||t<=c.t0)continue;
+    const reach=v*(t-c.t0),L=c.L;
+    if(random){
+      const K=cfg.K;if(!(K>0))continue;
+      const reach2=reach*reach,fullR=v*(t-c.t0-L),fullR2=fullR>0?fullR*fullR:-1;
+      for(let i=0;i<NC;i++){
+        const dx=cx[i]-c.x,dy=cy[i]-c.y,r2=dx*dx+dy*dy;if(r2>reach2)continue;
+        const rr2=r2<2500?2500:r2;
+        if(r2<=fullR2){logL[i]-=K/rr2;continue;}
+        const tau=t-c.t0-Math.sqrt(r2)/v,f=L>0?(tau>=L?1:tau/L):1;
+        logL[i]-=K/rr2*f;
+      }
+    }else{
+      if(c.cL<=0&&c.cO<=0)continue;const R=cfg.range;
+      if(R<CELL*0.75){
+        const r=R*0.5;if(r>reach)continue;const tau=t-c.t0-r/v,f=L>0?Math.min(1,tau/L):1;
+        addA(logL,logO,c.k,c,f*c.ownW,two);
+      }else{
+        const lim=Math.min(reach,R+CELL*0.5);
+        for(let i=0;i<NC;i++){
+          const dx=cx[i]-c.x,dy=cy[i]-c.y,r=Math.sqrt(dx*dx+dy*dy);if(r>lim)continue;
+          const ww=(R-r)/CELL+0.5;if(ww<=0)continue;
+          const tau=t-c.t0-r/v,f=L>0?(tau>=L?1:tau/L):1;
+          addA(logL,logO,i,c,f*(ww>1?1:ww),two);
+        }
+      }
+    }
+  }
+  const cov=out.cov,rep=out.rep,fl=cfg.lifeShare;let gal=0,life=0;
+  for(let i=0;i<NC;i++){
+    let a=-Math.expm1(logL[i]),b=two?-Math.expm1(logO[i]):a;
+    const isRep=st.settle[i]<=t;rep[i]=isRep?1:0;if(isRep){a=1;b=1;}
+    const cv=two?fl*a+(1-fl)*b:a;cov[i]=cv;gal+=stars[i]*cv;life+=stars[i]*a;
+  }
+  out.gal=gal/TOTAL;out.life=life/TOTAL;return out;
+}
+
+function sunStats(st,t){
+  const cfg=st.cfg,all=sunWin(st.civs,0,t,cfg),repSun=st.settle[sunCell]<=t;
+  const pSun=repSun?1:-Math.expm1(all.lg);
+  const ta=Math.max(0,t-WINDOW),rec=sunWin(st.civs,ta,t,cfg);
+  let repRecent=false,visNow=0,ever=0,reach=0;
+  for(const c of st.civs){
+    const arr=c.t0+c.rSun;if(arr<=t){ever++;if(t<=arr+c.L)visNow++;}
+    if(c.rep){if(c.launch<=t&&c.launch+c.rSun/cfg.vEff<=t)reach++;if(c.sunTime<=t&&c.sunTime>ta)repRecent=true;}
+    else if(t>c.t0&&cfg.v*(t-c.t0)>=c.rSun&&(cfg.strategy==='random'||c.rSun<=cfg.range))reach++;
+  }
+  const pRecent=repRecent?1:-Math.expm1(rec.lg);
+  return {pSun,pRecent,ex:all.ex,visNow,ever,reach};
+}
+
+function sunOnce(p,cfg,sd){
+  const rng=mulberry32(sd),civs=genCivs(rng,p,cfg);
+  if(cfg.strategy==='aimed')for(const c of civs)if(!c.rep&&c.rSun<=cfg.range)prepAimed(c,cfg);
+  for(const c of civs){
+    if(!c.rep||c.launch>cfg.T)continue;
+    const r=wave(c,cfg,rng,null,true);if(r.sunTime<=cfg.T)return {p:1,rep:true};
+  }
+  return {p:-Math.expm1(sunWin(civs,0,cfg.T,cfg).lg),rep:false};
+}
+</script>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- formatting ---------- */
+const SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+const sup=e=>String(e).split('').map(ch=>SUP[ch]||ch).join('');
+const trim=x=>x<10?String(Math.round(x*10)/10):String(Math.round(x));
+function sci(n){const e=Math.floor(Math.log10(n));const m=n/Math.pow(10,e);return trim(m)+' × 10'+sup(e);}
+function fmtCount(n){
+  if(n<1e4)return Math.round(n).toLocaleString('en-GB');
+  if(n>=1e15)return sci(n);
+  const U=[[1e12,'trillion'],[1e9,'billion'],[1e6,'million'],[1e3,'thousand']];
+  for(const [u,w] of U)if(n>=u)return trim(n/u)+' '+w;
+  return String(Math.round(n));
+}
+function fmtYears(y){
+  if(y<1e3)return Math.round(y)+' years';
+  if(y<1e6)return trim(y/1e3)+' thousand years';
+  if(y<1e9)return trim(y/1e6)+' million years';
+  return trim(y/1e9)+' billion years';
+}
+function fmtP(p){
+  if(!(p>0))return 'effectively zero';
+  if(p>=0.995)return 'near certain';
+  if(p>=0.1)return Math.round(p*100)+'%';
+  if(p>=0.01)return (Math.round(p*1000)/10)+'%';
+  return '1 in '+fmtCount(1/p);
+}
+function fmtNum(x){
+  if(!(x>0))return '0';
+  if(x>=1000)return Math.round(x).toLocaleString('en-GB');
+  if(x>=0.01)return String(Number(x.toPrecision(2)));
+  return sci(x);
+}
+
+/* ---------- controls ---------- */
+const CTL={
+  civs:{min:1,max:1000,log:true,fmt:v=>v.toLocaleString('en-GB')},
+  period:{min:10,max:10000,log:true,fmt:v=>fmtYears(v*1e6)},
+  life:{min:100,max:1e8,log:true,fmt:v=>fmtYears(v)},
+  probes:{min:1,max:1e12,log:true,fmt:v=>fmtCount(v)},
+  speed:{min:0.1,max:20,log:true,fmt:v=>v+'% of light speed'},
+  near:{min:1,max:AU_LY,log:true,fmt:v=>v>=AU_LY*0.98?'1 light-year':fmtCount(v)+' AU'},
+  range:{min:200,max:100000,log:true,fmt:v=>fmtCount(v)+' light-years'},
+  lifeShare:{min:1e-6,max:0.1,log:true,fmt:v=>'1 in '+fmtCount(1/v)+' stars'},
+  repShare:{min:0,max:100,log:false,fmt:v=>{const n=Math.round(v/100*val('civs'));return v+'% ('+n+' civilisation'+(n===1?'':'s')+')';}},
+  reliab:{min:0.1,max:1,log:false,fmt:v=>v.toFixed(2)},
+  pause:{min:10,max:1e6,log:true,fmt:v=>fmtYears(v)}
+};
+function snap(k,v){
+  if(k==='civs')return Math.max(1,Math.round(Number(v.toPrecision(2))));
+  if(k==='repShare')return Math.round(v);
+  if(k==='reliab')return Math.round(v*100)/100;
+  return Number(v.toPrecision(2));
+}
+function sliderToVal(k,s){
+  const c=CTL[k],u=s/1000;
+  const v=c.log?Math.pow(10,Math.log10(c.min)+u*(Math.log10(c.max)-Math.log10(c.min))):c.min+u*(c.max-c.min);
+  return snap(k,v);
+}
+function valToSlider(k,v){
+  const c=CTL[k];
+  const u=c.log?(Math.log10(v)-Math.log10(c.min))/(Math.log10(c.max)-Math.log10(c.min)):(v-c.min)/(c.max-c.min);
+  return Math.round(Math.max(0,Math.min(1,u))*1000);
+}
+const val=k=>sliderToVal(k,Number(document.getElementById('c-'+k).value));
+function showOut(k){document.getElementById('o-'+k).textContent=CTL[k].fmt(val(k));}
+function setCtl(k,v){document.getElementById('c-'+k).value=valToSlider(k,v);showOut(k);}
+
+let strategy='random';
+const preferBox=$('#c-prefer');
+function setStrategy(s){
+  strategy=s;
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.strategy===s)));
+  syncVisibility();
+}
+function syncVisibility(){
+  document.querySelectorAll('.ctl[data-show]').forEach(el=>{
+    const m=el.dataset.show;
+    el.hidden=m==='random'?strategy!=='random':m==='aimed'?strategy!=='aimed':!(strategy==='aimed'&&preferBox.checked);
+  });
+}
+function readParams(){
+  const p={strategy,prefer:preferBox.checked};
+  for(const k of Object.keys(CTL))p[k]=val(k);
+  return p;
+}
+
+const PRESETS={
+  scatter:{note:'A billion probes per civilisation, fired in random directions. Plenty of traffic, almost no encounters.',
+    v:{civs:100,period:1000,life:1e4,probes:1e9,speed:1,near:100,repShare:0},strategy:'random'},
+  survey:{note:'A million probes per civilisation, aimed at stars within 2,000 light-years, worlds with signs of life first.',
+    v:{civs:100,period:1000,life:1e5,probes:1e6,speed:1,range:2000,lifeShare:1e-3,repShare:0},strategy:'aimed',prefer:true},
+  one:{note:'One civilisation in a hundred releases reliable self-replicators. The rest send aimed probes.',
+    v:{civs:100,period:1000,life:1e4,probes:1e6,speed:1,range:2000,repShare:1,reliab:0.9,pause:1000},strategy:'aimed',prefer:false},
+  edge:{note:'Two civilisations release self-replicators that only just manage to keep copying. Their spread breaks up and leaves voids.',
+    v:{civs:100,period:1000,life:1e4,probes:1e6,speed:1,range:2000,repShare:2,reliab:0.26,pause:1000},strategy:'aimed',prefer:false},
+  fireflies:{note:'Short-lived civilisations scattered across 10 billion years. Check how many are in our sky right now.',
+    v:{civs:300,period:10000,life:1000,probes:1e6,speed:1,near:100,repShare:0},strategy:'random'}
+};
+const DEFAULTS={civs:100,period:1000,life:1e4,probes:1e9,speed:1,near:100,range:2000,lifeShare:1e-3,repShare:0,reliab:0.6,pause:1000};
+for(const k of Object.keys(CTL))setCtl(k,DEFAULTS[k]);
+
+function applyPreset(name){
+  const pr=PRESETS[name];
+  for(const [k,v] of Object.entries(pr.v))setCtl(k,v);
+  if(pr.prefer!==undefined)preferBox.checked=pr.prefer;
+  setStrategy(pr.strategy);
+  for(const k of Object.keys(CTL))showOut(k);
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.preset===name)));
+  $('#preset-note').textContent=pr.note;
+  rerun(true);
+}
+function clearPreset(){
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
+  $('#preset-note').textContent='';
+}
+
+/* ---------- canvas ---------- */
+const plate=$('#plate'),cv=$('#map'),ctx=cv.getContext('2d');
+const sparkCv=$('#spark');
+const heat=document.createElement('canvas');heat.width=GRID;heat.height=GRID;
+const heatCtx=heat.getContext('2d');const heatImg=heatCtx.createImageData(GRID,GRID);
+let W=0,DPR=1,starLayer=null,M0=0,SC=1;
+const X=x=>M0+(x+RG)*SC, Y=y=>M0+(y+RG)*SC;
+
+const STOPS=[[0,[92,28,72,0]],[0.22,[140,34,84,90]],[0.5,[208,58,96,165]],[0.78,[244,118,118,215]],[1,[255,228,212,242]]];
+const LUT=new Uint8ClampedArray(256*4);
+for(let n=0;n<256;n++){
+  const t=n/255;let s=0;while(s<STOPS.length-2&&t>STOPS[s+1][0])s++;
+  const [t0,c0]=STOPS[s],[t1,c1]=STOPS[s+1],u=(t-t0)/(t1-t0);
+  for(let q=0;q<4;q++)LUT[n*4+q]=c0[q]+(c1[q]-c0[q])*u;
+}
+
+function gauss(r){let u=0,v=0;while(u===0)u=r();while(v===0)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function buildStars(){
+  starLayer=document.createElement('canvas');starLayer.width=W;starLayer.height=W;
+  const g=starLayer.getContext('2d');
+  g.fillStyle='#0d1630';g.fillRect(0,0,W,W);
+  const gr=g.createRadialGradient(X(0),Y(0),0,X(0),Y(0),RG*SC);
+  gr.addColorStop(0,'rgba(255,214,170,0.42)');gr.addColorStop(0.1,'rgba(220,190,200,0.16)');
+  gr.addColorStop(0.45,'rgba(90,110,180,0.07)');gr.addColorStop(1,'rgba(40,60,120,0)');
+  g.fillStyle=gr;g.beginPath();g.arc(X(0),Y(0),RG*SC,0,Math.PI*2);g.fill();
+  const r=mulberry32(12345),pitch=Math.tan(13*Math.PI/180);
+  for(let n=0;n<9000;n++){
+    let x,y,warm;
+    if(r()<0.13){x=gauss(r)*SB;y=gauss(r)*SB;warm=true;}
+    else{
+      let rad;do{rad=-RD*(Math.log(r()||1e-9)+Math.log(r()||1e-9));}while(rad>RG);
+      let th;
+      if(r()<0.62&&rad>2500){const arm=Math.floor(r()*4);th=Math.log(rad/2500)/pitch+arm*Math.PI/2+gauss(r)*0.22;}
+      else th=r()*Math.PI*2;
+      x=rad*Math.cos(th);y=rad*Math.sin(th);warm=rad<6000&&r()<0.6;
+    }
+    const a=0.18+r()*0.6,s=(0.5+r()*1.1)*DPR;
+    g.fillStyle=warm?`rgba(255,226,196,${a})`:`rgba(206,218,255,${a})`;
+    g.fillRect(X(x),Y(y),s,s);
+  }
+}
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  const w=Math.round(plate.getBoundingClientRect().width*DPR);
+  if(w<=0||w===W)return;
+  W=w;cv.width=W;cv.height=W;M0=W*0.02;SC=(W-2*M0)/(2*RG);
+  buildStars();draw();
+}
+
+/* ---------- simulation state ---------- */
+let S=null,seed=20261025,tNorm=1,playing=false,last=0;
+const F=makeField();
+const DURATION=14000;
+
+function draw(){
+  if(!S||!W||!starLayer)return;
+  const t=tNorm*S.T;
+  field(S,t,F);
+  ctx.drawImage(starLayer,0,0);
+  const d=heatImg.data;d.fill(0);
+  for(let k=0;k<NC;k++){
+    const o=(gj[k]*GRID+gi[k])*4;
+    if(F.rep[k]){d[o]=79;d[o+1]=195;d[o+2]=181;d[o+3]=165;continue;}
+    const c=F.cov[k];if(!(c>1e-14))continue;
+    let tt=(Math.log10(c)+14)/14;if(tt>1)tt=1;const n=Math.round(tt*255)*4;
+    d[o]=LUT[n];d[o+1]=LUT[n+1];d[o+2]=LUT[n+2];d[o+3]=LUT[n+3];
+  }
+  heatCtx.putImageData(heatImg,0,0);
+  ctx.save();ctx.globalCompositeOperation='screen';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(heat,X(-RG),Y(-RG),2*RG*SC,2*RG*SC);ctx.restore();
+
+  const cfg=S.cfg,maxR=cfg.strategy==='aimed'?cfg.range:2*RG;
+  ctx.lineWidth=1*DPR;ctx.strokeStyle='rgba(255,170,150,0.32)';
+  for(const c of S.civs){
+    if(c.rep||t<=c.t0)continue;const reach=cfg.v*(t-c.t0);
+    if(reach<maxR){ctx.beginPath();ctx.arc(X(c.x),Y(c.y),Math.max(1,reach*SC),0,Math.PI*2);ctx.stroke();}
+  }
+  for(const c of S.civs){
+    if(t<c.t0)continue;const px=X(c.x),py=Y(c.y),active=t<=c.t0+c.L;
+    if(active){
+      ctx.fillStyle=c.rep?'rgba(79,195,181,0.3)':'rgba(255,210,122,0.28)';
+      ctx.beginPath();ctx.arc(px,py,5.5*DPR,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=c.rep?'#4fc3b5':'#ffd27a';ctx.beginPath();ctx.arc(px,py,2.6*DPR,0,Math.PI*2);ctx.fill();
+    }else{
+      ctx.strokeStyle=c.rep?'rgba(79,195,181,0.6)':'rgba(200,210,235,0.45)';
+      ctx.beginPath();ctx.arc(px,py,2.4*DPR,0,Math.PI*2);ctx.stroke();
+    }
+  }
+  const sx=X(SUN.x),sy=Y(SUN.y);
+  ctx.strokeStyle='#f0c050';ctx.lineWidth=1.6*DPR;
+  ctx.beginPath();ctx.arc(sx,sy,7*DPR,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(sx-13*DPR,sy);ctx.lineTo(sx-9*DPR,sy);ctx.moveTo(sx+9*DPR,sy);ctx.lineTo(sx+13*DPR,sy);
+  ctx.moveTo(sx,sy-13*DPR);ctx.lineTo(sx,sy-9*DPR);ctx.moveTo(sx,sy+9*DPR);ctx.lineTo(sx,sy+13*DPR);ctx.stroke();
+  ctx.font=`600 ${13*DPR}px Archivo, system-ui, sans-serif`;ctx.textBaseline='middle';
+  ctx.lineWidth=3*DPR;ctx.strokeStyle='rgba(13,22,48,0.85)';ctx.strokeText('Sun',sx+17*DPR,sy);
+  ctx.fillStyle='#f6e7c1';ctx.fillText('Sun',sx+17*DPR,sy);
+
+  const bx=M0+14*DPR,by=W-20*DPR,bl=10000*SC;
+  ctx.strokeStyle='rgba(220,228,245,0.8)';ctx.lineWidth=1.2*DPR;ctx.beginPath();
+  ctx.moveTo(bx,by);ctx.lineTo(bx+bl,by);ctx.moveTo(bx,by-4*DPR);ctx.lineTo(bx,by+4*DPR);ctx.moveTo(bx+bl,by-4*DPR);ctx.lineTo(bx+bl,by+4*DPR);ctx.stroke();
+  ctx.font=`500 ${12*DPR}px Archivo, system-ui, sans-serif`;ctx.textBaseline='bottom';ctx.fillStyle='rgba(220,228,245,0.85)';
+  ctx.fillText('10,000 light-years',bx,by-7*DPR);
+
+  updateReadout(t);
+  drawSpark();
+  $('#scrub').value=Math.round(tNorm*1000);
+  $('#tlabel').textContent=tNorm>=0.999?'Present day, after '+fmtYears(S.T):fmtYears(t)+' into '+fmtYears(S.T);
+}
+
+function updateReadout(t){
+  const st=sunStats(S,t),cfg=S.cfg,N=S.civs.length,p=S.p;
+  const ordinaryOnly=cfg.strategy==='random'&&S.released===0;
+  $('#r-label').textContent=ordinaryOnly?'Chance a probe has passed within '+CTL.near.fmt(p.near)+' of the Sun':'Chance a probe has reached the Sun';
+  $('#r-big').textContent=fmtP(st.pSun);
+  $('#r-sub').textContent=tNorm>=0.999?'by the present day, in this galaxy':'by '+fmtYears(t)+' into the period, in this galaxy';
+  let v;const pS=st.pSun;
+  if(pS>=0.9)v='In this galaxy something should have come by. If nothing did, one of the assumptions is wrong.';
+  else if(pS>=0.1)v='In this galaxy it’s roughly a toss-up whether anything has come by.';
+  else if(F.gal>=0.3)v='In this galaxy '+Math.round(F.gal*100)+'% of stars have been visited, but the Sun happens to sit in one of the gaps.';
+  else if(pS>=1e-3)v='In this galaxy a visit is possible, but the odds are against it.';
+  else v='In this galaxy an unvisited Sun is exactly what you’d expect.';
+  if(pS<0.1&&F.gal<0.3&&st.reach>=Math.max(3,N*0.3))v+=' Probes from '+st.reach+' civilisations have had time to get here. They just didn’t come this way.';
+  if(pS>=0.1&&t>WINDOW&&st.pRecent<0.5*pS)v+=' Any visit most likely happened long enough ago that traces on Earth’s surface would be gone.';
+  $('#r-verdict').textContent=v;
+
+  const rows=[];
+  if(S.T>WINDOW)rows.push(['A visit in the last 100 million years',fmtP(st.pRecent)]);
+  if(S.released<N)rows.push(['Expected visits from ordinary probes',fmtNum(st.ex)]);
+  rows.push(['Share of all stars visited',F.gal>0?fmtP(F.gal):'none']);
+  if(cfg.strategy==='aimed'&&cfg.prefer)rows.push(['Share of life-bearing worlds visited',F.life>0?fmtP(F.life):'none']);
+  rows.push(['Civilisations whose probes have had time to get here',st.reach+' of '+N]);
+  rows.push(['Civilisations whose light has ever reached us',st.ever+' of '+N]);
+  rows.push(['Civilisations whose light is reaching us now',st.visNow+' of '+N]);
+  if(S.released>0)rows.push(['Self-replicator waves released',S.released+', of which '+S.fizzled+' stalled']);
+  $('#stats').innerHTML=rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('');
+}
+
+function drawSpark(){
+  const c=sparkCv,w=c.clientWidth||300,h=88;
+  c.width=Math.round(w*DPR);c.height=Math.round(h*DPR);
+  const g=c.getContext('2d');g.setTransform(DPR,0,0,DPR,0,0);
+  const cs=getComputedStyle(document.documentElement);
+  const ink=cs.getPropertyValue('--ink').trim(),muted=cs.getPropertyValue('--muted').trim(),line=cs.getPropertyValue('--line').trim(),accent=cs.getPropertyValue('--accent').trim();
+  const top=14,bot=h-4,yOf=lp=>top+(-lp)/12*(bot-top);
+  g.font='11px Archivo, system-ui, sans-serif';g.textBaseline='bottom';
+  for(const [lp,lab] of [[0,'certain'],[-6,'1 in a million'],[-12,'1 in a trillion']]){
+    const y=Math.round(yOf(lp))+0.5;g.strokeStyle=line;g.lineWidth=1;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();
+    g.fillStyle=muted;g.fillText(lab,w-g.measureText(lab).width-2,y-2);
+  }
+  const A=S.spark,M=A.length-1;g.strokeStyle=ink;g.lineWidth=1.7;g.beginPath();
+  for(let m=0;m<=M;m++){const p=A[m];const lp=p>0?Math.max(-12,Math.log10(p)):-12;const x=m/M*w,y=yOf(lp);m?g.lineTo(x,y):g.moveTo(x,y);}
+  g.stroke();
+  const xm=tNorm*w;const pm=A[Math.round(tNorm*M)];const ym=yOf(pm>0?Math.max(-12,Math.log10(pm)):-12);
+  g.strokeStyle=accent;g.lineWidth=1.5;g.beginPath();g.moveTo(xm,top-6);g.lineTo(xm,bot);g.stroke();
+  g.fillStyle=accent;g.beginPath();g.arc(Math.min(w-3,Math.max(3,xm)),ym,3.5,0,Math.PI*2);g.fill();
+}
+
+/* ---------- averaging over many galaxies ---------- */
+let mcToken=0;
+function startMC(p){
+  const token=++mcToken,cfg=makeCfg(p),target=40;let n=0,sum=0,repHits=0;
+  const el=$('#r-mc');el.textContent='Averaging over random galaxies…';
+  const render=()=>{
+    const mean=sum/n;
+    let s='Across <strong>'+n+'</strong> random galaxies with these settings: <strong>'+fmtP(mean)+'</strong> on average by the present day.';
+    if(p.repShare>0&&Math.round(p.repShare/100*p.civs)>0)s+=' Self-replicators reached the Sun in '+repHits+' of them.';
+    if(n<target)s+=' Still counting…';
+    el.innerHTML=s;
+  };
+  const step=()=>{
+    if(token!==mcToken)return;const t0=performance.now();
+    while(n<target&&performance.now()-t0<14){
+      const r=sunOnce(p,cfg,(Math.imul(seed^0x9e3779b9,n+1)+n*104729+17)>>>0);
+      sum+=r.p;if(r.rep)repHits++;n++;
+    }
+    render();if(n<target)setTimeout(step,0);
+  };
+  setTimeout(step,30);
+}
+
+/* ---------- running and playback ---------- */
+function setPlayIcon(){
+  $('#playIcon').innerHTML=playing?'<path d="M3 1.5h3.5v13H3zM9.5 1.5H13v13H9.5z"/>':'<path d="M3 1.5v13l11-6.5z"/>';
+  $('#play').setAttribute('aria-label',playing?'Pause':'Play');
+}
+function play(){if(tNorm>=0.999)tNorm=0;playing=true;setPlayIcon();last=performance.now();requestAnimationFrame(tick);}
+function pause(){playing=false;setPlayIcon();}
+function tick(now){
+  if(!playing)return;const dt=Math.min(100,now-last);last=now;
+  tNorm=Math.min(1,tNorm+dt/DURATION);draw();
+  if(tNorm>=1){playing=false;setPlayIcon();return;}
+  requestAnimationFrame(tick);
+}
+function rerun(fromStart){
+  const p=readParams();S=simulate(p,seed);
+  if(fromStart&&!reduceMotion){tNorm=0;draw();play();}
+  else{if(!playing)tNorm=1;draw();}
+  startMC(p);
+}
+let tmr=0;
+function schedule(){clearTimeout(tmr);tmr=setTimeout(()=>rerun(false),140);}
+
+document.querySelectorAll('input[type="range"][data-key]').forEach(inp=>{
+  inp.addEventListener('input',()=>{
+    showOut(inp.dataset.key);if(inp.dataset.key==='civs')showOut('repShare');
+    clearPreset();schedule();
+  });
+});
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{setStrategy(b.dataset.strategy);clearPreset();rerun(false);}));
+preferBox.addEventListener('change',()=>{syncVisibility();clearPreset();rerun(false);});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>applyPreset(c.dataset.preset)));
+$('#play').addEventListener('click',()=>playing?pause():play());
+$('#scrub').addEventListener('input',e=>{pause();tNorm=Number(e.target.value)/1000;draw();});
+$('#reroll').addEventListener('click',()=>{seed=(Math.random()*4294967296)>>>0;rerun(false);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>draw());
+
+setStrategy('random');
+new ResizeObserver(resize).observe(plate);
+resize();
+applyPreset('scatter');
+</script>
+</body>
+</html>
